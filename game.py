@@ -42,10 +42,10 @@ jumpscare_img = pygame.transform.scale(
     pygame.image.load("assets/jumpscare.png"), (width, height)
 )
 # ===== Zvuky =====
-#sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
-#sound_door = pygame.mixer.Sound("assets/sound_door.wav")
-#sound_step = pygame.mixer.Sound("assets/sound_step.wav")
-#sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
+sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
+sound_door = pygame.mixer.Sound("assets/sound_door.wav")
+sound_step = pygame.mixer.Sound("assets/sound_step.wav")
+sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
 
 # ===== Stav hry =====
 game_state = "menu"   # office / camera / win / gameover / menu
@@ -89,6 +89,7 @@ light_on = False
 # ===== Freddy =====
 fred_rooms = [1, 2, 3, "door"]
 fred_pos = 0
+fred_loc = fred_pos
 #======= Movement Freddyho ====
 movement_oppurtunity_fred = 0
 fred_AI = random.randint(1, 4)
@@ -104,6 +105,7 @@ def fred_move():
 
 def jumpscare():
     screen.blit(jumpscare_img, (0, 0))
+    sound_jumpscare.play()
 
 def win():
     global game_state, night
@@ -169,17 +171,19 @@ while True:
             if game_state == "camera":
                 if event.key == pygame.K_1:
                     current_camera = 1
-                    
+                    sound_cam.play()
                 if event.key == pygame.K_2:
                     current_camera = 2
-                    
+                    sound_cam.play()
                 if event.key == pygame.K_3:
                     current_camera = 3
-                    
+                    sound_cam.play()
 
             # Dveře
             if event.key == pygame.K_d and game_state == "office":
                 left_door_closed = not left_door_closed
+                if left_door_closed:
+                    sound_door.play()
                 if light_on == True:
                     light_on = not light_on
 
@@ -202,7 +206,9 @@ while True:
                     else:
                         game_over()
     # ====== Freddy movement ====¨
-
+    if fred_loc != fred_pos:
+        sound_step.play()
+        fred_loc = fred_pos
 
     #====== Drain ====
     if game_state != "menu":
