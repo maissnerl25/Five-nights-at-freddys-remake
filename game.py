@@ -81,6 +81,8 @@ last_switch = 0
 hour = 12
 time_counter = 0
 TIME_PER_HOUR = 20 + (10 * night)  # kolik sekund trvá 1 hodina ve hře
+wait_start_time = 0
+loading_start_time = 0
 
 # ===== Dveře a světlo =====
 left_door_closed = False
@@ -95,13 +97,25 @@ movement_oppurtunity_fred = 0
 fred_AI = random.randint(1, 4)
 
 def fred_move():
-    global movement_oppurtunity_fred, fred_AI, fred_AI, fred_pos
+    global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time
+    
+    if wait_start_time == 0:
+            wait_start_time = pygame.time.get_ticks()
 
-    movement_oppurtunity_fred = random.randint(1, 20)
-    if movement_oppurtunity_fred <= fred_AI:
-        fred_pos += 1
-        if fred_pos > len(fred_rooms):
-            fred_pos -= 1
+    wait_fred = pygame.time.get_ticks() - wait_start_time
+
+    if wait_fred > 7000:
+        wait_start_time = pygame.time.get_ticks()
+
+        movement_oppurtunity_fred = random.randint(1, 20)
+        print(movement_oppurtunity_fred, fred_AI)
+        print(fred_pos)
+
+        if movement_oppurtunity_fred <= fred_AI:
+            fred_pos += 1
+
+            if fred_pos >= len(fred_rooms):
+                fred_pos -= 1
 
 def jumpscare():
     screen.blit(jumpscare_img, (0, 0))
@@ -205,7 +219,10 @@ while True:
                         fred_pos = 0
                     else:
                         game_over()
-    # ====== Freddy movement ====¨
+            if event.key == pygame.K_u:
+                fred_AI = 20
+    # ====== Freddy movement ====
+    fred_move()
     if fred_loc != fred_pos:
         sound_step.play()
         fred_loc = fred_pos
@@ -251,9 +268,22 @@ while True:
         screen.blit(cam_images[current_camera], (0, 0))
 
         fred_loc = fred_rooms[fred_pos]
+        if fred_pos >= len(fred_rooms):
+            fred_pos -= 1
         if fred_loc == current_camera:
             if fred_loc == 1:
                 screen.blit(fred_img, (width / 2.67, height / 2))
+            if fred_loc == 2:
+                screen.blit(fred_img, (width / 2.67, height / 2))
+            if fred_loc == 3:
+                screen.blit(fred_img, (width / 2.67, height / 2))
+            if fred_loc == "door":
+                if left_door_closed:
+                    fred_pos = 0
+                else:
+                    game_over()
+                
+
 
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
 
