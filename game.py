@@ -91,13 +91,23 @@ light_on = False
 # ===== Freddy =====
 fred_rooms = [1, 2, 3, "door"]
 fred_pos = 0
-fred_loc = fred_pos
+fred_loc = fred_rooms[fred_pos]
 #======= Movement Freddyho ====
 movement_oppurtunity_fred = 0
 fred_AI = random.randint(1, 4)
 
 def fred_move():
-    global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time
+    global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time    
+    fred_loc = fred_rooms[fred_pos]
+    if fred_loc == "door":
+        if left_door_closed:
+            fred_pos = 0
+            wait_start_time = pygame.time.get_ticks()
+        else:
+
+            game_over()
+
+    
     
     if wait_start_time == 0:
             wait_start_time = pygame.time.get_ticks()
@@ -116,6 +126,7 @@ def fred_move():
 
             if fred_pos >= len(fred_rooms):
                 fred_pos -= 1
+            wait_start_time = pygame.time.get_ticks()  # RESET TIMERU
 
 def jumpscare():
     screen.blit(jumpscare_img, (0, 0))
@@ -277,14 +288,6 @@ while True:
                 screen.blit(fred_img, (width / 2.67, height / 2))
             if fred_loc == 3:
                 screen.blit(fred_img, (width / 2.67, height / 2))
-            if fred_loc == "door":
-                if left_door_closed:
-                    fred_pos = 0
-                else:
-                    game_over()
-                
-
-
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
 
     elif game_state == "win":
