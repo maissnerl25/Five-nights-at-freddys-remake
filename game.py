@@ -37,6 +37,7 @@ cam_images = {
 }
 
 fred_img = pygame.image.load("assets/fred.png").convert_alpha()
+bon_img = pygame.image.load("assets/bonnie.png"). convert_alpha()
 
 jumpscare_img = pygame.transform.scale(
     pygame.image.load("assets/jumpscare.png"), (width, height)
@@ -82,6 +83,7 @@ hour = 12
 time_counter = 0
 TIME_PER_HOUR = 20 + (10 * night)  # kolik sekund trvá 1 hodina ve hře
 wait_start_time = 0
+wait_start_time_bon = 0
 loading_start_time = 0
 fred_door_timer = None
 
@@ -128,6 +130,45 @@ def fred_move():
             if fred_pos >= len(fred_rooms):
                 fred_pos -= 1
             wait_start_time = pygame.time.get_ticks()  # RESET TIMERU
+# ======= BONNIE ====
+bon_rooms = [1, 2, 3, "door"]
+bon_pos = 0
+bon_loc = bon_rooms[bon_pos]
+bon_pr_loc = bon_loc
+# ======= MOVEMENT BONNIE ====
+def bon_move():
+    global movement_oppurtunity_bon, bon_AI, bon_pos, wait_start_time_bon   
+#====== ATTACK CHECK ====
+    
+    bon_loc = bon_rooms[bon_pos]
+    if bon_loc == "door":
+        if left_door_closed:
+            bon_pos = 0
+            wait_start_time_bon = pygame.time.get_ticks()
+        else:
+            game_over()
+
+    if wait_start_time_bon == 0:
+            wait_start_time_bon = pygame.time.get_ticks()
+
+    wait_bon = pygame.time.get_ticks() - wait_start_time
+
+    if wait_bon > 7000:
+        wait_start_time_bon = pygame.time.get_ticks()
+
+        movement_oppurtunity_bon = random.randint(1, 20)
+        print(movement_oppurtunity_bon, bon_AI)
+        print(bon_pos)
+
+        if movement_oppurtunity_bon <= bon_AI:
+            bon_pos += 1
+
+            if bon_pos >= len(bon_rooms):
+                bon_pos -= 1
+            wait_start_time_bon = pygame.time.get_ticks()  # RESET TIMERU
+
+
+
 
 def jumpscare():
     screen.blit(jumpscare_img, (0, 0))
@@ -278,7 +319,7 @@ while True:
 
     elif game_state == "camera":
         screen.blit(cam_images[current_camera], (0, 0))
-
+        # Freddy kamery
         fred_loc = fred_rooms[fred_pos]
         if fred_pos >= len(fred_rooms):
             fred_pos -= 1
@@ -289,7 +330,22 @@ while True:
                 screen.blit(fred_img, (width / 2.67, height / 2))
             if fred_loc == 3:
                 screen.blit(fred_img, (width / 2.67, height / 2))
+        # Bonnie kamery
+        bon_loc = bon_rooms[bon_pos]
+        if bon_pos >= len(bon_rooms):
+            bon_pos -= 1
+        if bon_loc == current_camera:
+            if bon_loc == 1:
+                screen.blit(bon_img, (width / 2.67, height / 2))
+            if bon_loc == 2:
+                screen.blit(bon_img, (width / 2.67, height / 2))
+            if bon_loc == 3:
+                screen.blit(bon_img, (width / 2.67, height / 2))
+
+
+
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
+
 
     elif game_state == "win":
         if 'win_start_time' not in globals():
