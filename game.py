@@ -1,4 +1,4 @@
-import pygame, random, sys, time
+import pygame, random, sys
 
 pygame.init()
 
@@ -83,6 +83,7 @@ time_counter = 0
 TIME_PER_HOUR = 20 + (10 * night)  # kolik sekund trvá 1 hodina ve hře
 wait_start_time = 0
 loading_start_time = 0
+fred_door_timer = None
 
 # ===== Dveře a světlo =====
 left_door_closed = False
@@ -92,23 +93,23 @@ light_on = False
 fred_rooms = [1, 2, 3, "door"]
 fred_pos = 0
 fred_loc = fred_rooms[fred_pos]
+fred_pr_loc = fred_loc
 #======= Movement Freddyho ====
 movement_oppurtunity_fred = 0
 fred_AI = random.randint(1, 4)
 
 def fred_move():
     global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time    
+#====== ATTACK CHECK ====
+    
     fred_loc = fred_rooms[fred_pos]
     if fred_loc == "door":
         if left_door_closed:
             fred_pos = 0
             wait_start_time = pygame.time.get_ticks()
         else:
-
             game_over()
 
-    
-    
     if wait_start_time == 0:
             wait_start_time = pygame.time.get_ticks()
 
