@@ -34,9 +34,14 @@ cam_images = {
     1: pygame.transform.scale(pygame.image.load("assets/cam1.png"), (width, height)),
     2: pygame.transform.scale(pygame.image.load("assets/cam2.png"), (width, height)),
     3: pygame.transform.scale(pygame.image.load("assets/cam3.png"), (width, height)),
+    4: pygame.transform.scale(pygame.image.load("assets/cam4.png"), (width, height)),
 }
 
-fred_img = pygame.image.load("assets/fred.png").convert_alpha()
+fred_imgs = {
+    1: pygame.image.load("assets/eps1.png"),
+    2: pygame.image.load("assets/eps2.png").convert_alpha(),
+    3: pygame.image.load("assets/eps3.png")         
+}          
 bon_img = pygame.image.load("assets/bonnie.png"). convert_alpha()
 
 jumpscare_freddy_img = pygame.transform.scale(
@@ -101,35 +106,38 @@ movement_oppurtunity_fred = 0
 fred_AI = random.randint(1, 4)
 
 def fred_move():
-    global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time    
+    if game_state != "menu":
+        if game_state != "loading":
+        
+            global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time    
 #====== ATTACK CHECK ====
-    
-    fred_loc = fred_rooms[fred_pos]
-    if fred_loc == "door":
-        if left_door_closed:
-            fred_pos = 0
-            wait_start_time = pygame.time.get_ticks()
-        else:
-            game_over()
+        
+            fred_loc = fred_rooms[fred_pos]
+            if fred_loc == "door":
+                if left_door_closed:
+                    fred_pos = 0
+                    wait_start_time = pygame.time.get_ticks()
+                else:
+                    game_over()
 
-    if wait_start_time == 0:
-            wait_start_time = pygame.time.get_ticks()
+            if wait_start_time == 0:
+                    wait_start_time = pygame.time.get_ticks()
 
-    wait_fred = pygame.time.get_ticks() - wait_start_time
+            wait_fred = pygame.time.get_ticks() - wait_start_time
 
-    if wait_fred > 7000:
-        wait_start_time = pygame.time.get_ticks()
+            if wait_fred > 7000:
+                wait_start_time = pygame.time.get_ticks()
 
-        movement_oppurtunity_fred = random.randint(1, 20)
-        print(movement_oppurtunity_fred, fred_AI)
-        print(fred_pos)
+                movement_oppurtunity_fred = random.randint(1, 20)
+                print(movement_oppurtunity_fred, fred_AI)
+                print(fred_pos)
 
-        if movement_oppurtunity_fred <= fred_AI:
-            fred_pos += 1
+                if movement_oppurtunity_fred <= fred_AI:
+                    fred_pos += 1
 
-            if fred_pos >= len(fred_rooms):
-                fred_pos -= 1
-            wait_start_time = pygame.time.get_ticks()  # RESET TIMERU
+                    if fred_pos >= len(fred_rooms):
+                        fred_pos -= 1
+                    wait_start_time = pygame.time.get_ticks()  # RESET TIMERU
 # ======= BONNIE ====
 bon_rooms = [1, 2, 3, "door"]
 bon_pos = 0
@@ -245,6 +253,8 @@ while True:
                 if event.key == pygame.K_3:
                     current_camera = 3
                     #sound_cam.play()
+                if event.key == pygame.K_4:
+                    current_camera = 4
 
             # Dveře
             if event.key == pygame.K_d and game_state == "office":
@@ -326,11 +336,11 @@ while True:
             fred_pos -= 1
         if fred_loc == current_camera:
             if fred_loc == 1:
-                screen.blit(fred_img, (width / 2.67, height / 2))
+                screen.blit(fred_imgs[1], (width / 3.67, height / 2))
             if fred_loc == 2:
-                screen.blit(fred_img, (width / 2.67, height / 2))
+                screen.blit(fred_imgs[2], (width / 3, height / 3))
             if fred_loc == 3:
-                screen.blit(fred_img, (width / 2.67, height / 2))
+                screen.blit(fred_imgs[3], (width / 2.67, height / 3))
         # Bonnie kamery
         bon_loc = bon_rooms[bon_pos]
         if bon_pos >= len(bon_rooms):
@@ -339,7 +349,7 @@ while True:
             if bon_loc == 1:
                 screen.blit(bon_img, (width / 2.67, height / 2))
             if bon_loc == 2:
-                screen.blit(bon_img, (width / 2.67, height / 2))
+                screen.blit(bon_img, (width / 1, height / 1))
             if bon_loc == 3:
                 screen.blit(bon_img, (width / 2.67, height / 2))
 
