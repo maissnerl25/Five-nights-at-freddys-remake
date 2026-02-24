@@ -39,14 +39,14 @@ cam_images = {
 fred_img = pygame.image.load("assets/fred.png").convert_alpha()
 bon_img = pygame.image.load("assets/bonnie.png"). convert_alpha()
 
-jumpscare_img = pygame.transform.scale(
+jumpscare_freddy_img = pygame.transform.scale(
     pygame.image.load("assets/jumpscare.png"), (width, height)
 )
 # ===== Zvuky =====
-sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
-sound_door = pygame.mixer.Sound("assets/sound_door.wav")
-sound_step = pygame.mixer.Sound("assets/sound_step.wav")
-sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
+##sound_cam = pygame.mixer.#sound("assets/#sound_cam.wav")
+##sound_door = pygame.mixer.#sound("assets/#sound_door.wav")
+##sound_step = pygame.mixer.#sound("assets/#sound_step.wav")
+##sound_jumpscare = pygame.mixer.#sound("assets/#sound_jumpscare.wav")
 
 # ===== Stav hry =====
 game_state = "menu"   # office / camera / win / gameover / menu
@@ -170,9 +170,9 @@ def bon_move():
 
 
 
-def jumpscare():
-    screen.blit(jumpscare_img, (0, 0))
-    sound_jumpscare.play()
+def jumpscare_fred():
+    screen.blit(jumpscare_freddy_img, (0, 0))
+    ##sound_jumpscare.play()
 
 def win():
     global game_state, night
@@ -182,7 +182,7 @@ def win():
 def game_over():
     global game_state
     game_state = "gameover"
-    jumpscare()
+    jumpscare_fred()
 
 def reset_night():
     global power, hour, time_counter, anim_pos
@@ -203,15 +203,15 @@ def reset_night():
 
 def get_night_settings(night):
     if night == 1:
-        return 0.002, 0.01 # movement oppurtunity, drain
+        return random.randint(1, 4), 0.01 # freddy AI, drain
     elif night == 2:
-        return 0.003, 0.015
+        return random.randint(4, 6), 0.015
     elif night == 3:
-        return 0.004, 0.02
+        return random.randint(7, 8), 0.02
     elif night == 4:
-        return 0.005, 0.025
+        return random.randint(9, 10), 0.025
     elif night == 5:
-        return 0.007, 0.03
+        return random.randint(11, 14), 0.03
 
 while True:
     dt = clock.tick(60) / 1000.0
@@ -238,19 +238,20 @@ while True:
             if game_state == "camera":
                 if event.key == pygame.K_1:
                     current_camera = 1
-                    sound_cam.play()
+                    #sound_cam.play()
                 if event.key == pygame.K_2:
                     current_camera = 2
-                    sound_cam.play()
+                    #sound_cam.play()
                 if event.key == pygame.K_3:
                     current_camera = 3
-                    sound_cam.play()
+                    #sound_cam.play()
 
             # Dveře
             if event.key == pygame.K_d and game_state == "office":
                 left_door_closed = not left_door_closed
                 if left_door_closed:
-                    sound_door.play()
+                    #sound_door.play()
+                    print()
                 if light_on == True:
                     light_on = not light_on
 
@@ -277,7 +278,7 @@ while True:
     # ====== Freddy movement ====
     fred_move()
     if fred_loc != fred_pos:
-        sound_step.play()
+        ##sound_step.play()
         fred_loc = fred_pos
 
     #====== Drain ====
@@ -369,7 +370,7 @@ while True:
                 
         
     elif game_state == "gameover":
-        screen.blit(jumpscare_img, (0, 0))
+        screen.blit(jumpscare_freddy_img, (0, 0))
         text = big_font.render("GAME OVER", True, (255, 0, 0))
         #screen.blit(text, (200, 250))
 
