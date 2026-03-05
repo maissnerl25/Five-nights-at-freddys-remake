@@ -29,6 +29,9 @@ loading_img = pygame.transform.scale(
 office_fred_door = pygame.transform.scale(
     pygame.image.load("assets/office.fred2.png"), (width, height)
 )
+power_out_img = pygame.transform.scale(
+    pygame.image.load("assets/power_out.png"), (width, height)
+)
 cam_images = {
     0: pygame.transform.scale(pygame.image.load("assets/cam0.png"), (width, height)),
     1: pygame.transform.scale(pygame.image.load("assets/cam1.png"), (width, height)),
@@ -42,16 +45,21 @@ fred_imgs = {
     2: pygame.image.load("assets/eps2.png").convert_alpha(),
     3: pygame.image.load("assets/eps3.png")         
 }          
-bon_img = pygame.image.load("assets/bonnie.png"). convert_alpha()
+bon_imgs = { 
+    1: pygame.image.load("assets/bonnie.png").convert_alpha()
+}
 
+chica_imgs = {
+    1: pygame.image.load("assets/chirk1.png").convert_alpha(),
+}  
 jumpscare_freddy_img = pygame.transform.scale(
     pygame.image.load("assets/jumpscare.png"), (width, height)
 )
 # ===== Zvuky =====
-##sound_cam = pygame.mixer.#sound("assets/#sound_cam.wav")
-##sound_door = pygame.mixer.#sound("assets/#sound_door.wav")
-##sound_step = pygame.mixer.#sound("assets/#sound_step.wav")
-##sound_jumpscare = pygame.mixer.#sound("assets/#sound_jumpscare.wav")
+sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
+sound_door = pygame.mixer.Sound("assets/sound_door.wav")
+sound_step = pygame.mixer.Sound("assets/sound_step.wav")
+sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
 
 # ===== Stav hry =====
 game_state = "menu"   # office / camera / win / gameover / menu
@@ -59,10 +67,19 @@ current_camera = 1
 in_camera = False
 night = 1
 max_nights = 6
+power_out = False
+power_out_start = 0
 # ===== Barvy ====
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (100, 100, 100)
+# ===== Kamery buttony ====
+cam_buttons = {
+    1: pygame.Rect(950, 500, 80, 60),
+    2: pygame.Rect(1030, 450, 80, 60),
+    3: pygame.Rect(1030, 550, 80, 60),
+    4: pygame.Rect(1100, 500, 80, 60),
+}
 # ===== Menu ====
 button_rect = pygame.Rect(100, 250, 200, 60)
 
@@ -78,6 +95,19 @@ def draw_menu():
     text = font.render("New Game", True, WHITE)
     screen.blit(text, (button_rect.x + 30, button_rect.y + 10))
 
+    #Reset night
+def get_night_settings(night):
+    if night == 1:
+        return random.randint(0, 3),random.randint(2, 6),random.randint(1, 5), 0.01 # freddy AI, bonnie AI, chica AI, drain
+    elif night == 2:
+        return random.randint(3, 5),random.randint(6, 8),random.randint(6, 8), 0.015
+    elif night == 3:
+        return random.randint(5, 8),random.randint(9, 12),random.randint(9, 11), 0.02
+    elif night == 4:
+        return random.randint(9, 10),random.randint(13, 15),random.randint(12, 14), 0.025
+    elif night == 5:
+        return random.randint(11, 15),random.randint(16, 18),random.randint(15, 18), 0.03
+
 # ===== Energie =====
 power = 100.0
 
@@ -91,7 +121,7 @@ wait_start_time = 0
 wait_start_time_bon = 0
 loading_start_time = 0
 fred_door_timer = None
-
+fred_AI, bonnie_AI, chica_AI, drain_base = get_night_settings(night)
 # ===== Dveře a světlo =====
 left_door_closed = False
 light_on = False
@@ -103,7 +133,6 @@ fred_loc = fred_rooms[fred_pos]
 fred_pr_loc = fred_loc
 #======= Movement Freddyho ====
 movement_oppurtunity_fred = 0
-fred_AI = random.randint(1, 4)
 
 def fred_move():
     if game_state != "menu":
@@ -144,43 +173,80 @@ bon_pos = 0
 bon_loc = bon_rooms[bon_pos]
 bon_pr_loc = bon_loc
 # ======= MOVEMENT BONNIE ====
+movement_oppurtunity_bon = 0
+
+
 def bon_move():
-    global movement_oppurtunity_bon, bon_AI, bon_pos, wait_start_time_bon   
-#====== ATTACK CHECK ====
-    
+    global bon_pos, wait_start_time_bon
+
     bon_loc = bon_rooms[bon_pos]
+
     if bon_loc == "door":
         if left_door_closed:
             bon_pos = 0
-            wait_start_time_bon = pygame.time.get_ticks()
         else:
             game_over()
 
     if wait_start_time_bon == 0:
-            wait_start_time_bon = pygame.time.get_ticks()
-
-    wait_bon = pygame.time.get_ticks() - wait_start_time
-
-    if wait_bon > 7000:
         wait_start_time_bon = pygame.time.get_ticks()
 
-        movement_oppurtunity_bon = random.randint(1, 20)
-        print(movement_oppurtunity_bon, bon_AI)
-        print(bon_pos)
+    wait = pygame.time.get_ticks() - wait_start_time_bon
 
-        if movement_oppurtunity_bon <= bon_AI:
+    if wait > 5000:   
+        wait_start_time_bon = pygame.time.get_ticks()
+
+        movement_oppurtunity_bon = random.randint(1,20)
+
+        if movement_oppurtunity_bon <= bonnie_AI:
             bon_pos += 1
 
             if bon_pos >= len(bon_rooms):
-                bon_pos -= 1
-            wait_start_time_bon = pygame.time.get_ticks()  # RESET TIMERU
+                bon_pos = len(bon_rooms)-1
 
+            sound_step.play()
+# ====== Chirk ====
+chica_rooms = [1, 2, 3, "door"]
+chica_pos = 0
+chica_loc = chica_rooms[chica_pos]
+chica_pr_loc = chica_loc
+
+# ===== Movement Chirk ====
+wait_start_time_chica = 0
+
+def chica_move():
+    global chica_pos, wait_start_time_chica
+
+    chica_loc = chica_rooms[chica_pos]
+
+    if chica_loc == "door":
+        if left_door_closed:
+            chica_pos = 0
+        else:
+            game_over()
+
+    if wait_start_time_chica == 0:
+        wait_start_time_chica = pygame.time.get_ticks()
+
+    wait = pygame.time.get_ticks() - wait_start_time_chica
+
+    if wait > 6000:
+        wait_start_time_chica = pygame.time.get_ticks()
+
+        movement_oppurtunity_chica = random.randint(1,20)
+
+        if movement_oppurtunity_chica <= chica_AI:
+            chica_pos += 1
+
+            if chica_pos >= len(chica_rooms):
+                chica_pos = len(chica_rooms)-1
+
+            sound_step.play()
 
 
 
 def jumpscare_fred():
     screen.blit(jumpscare_freddy_img, (0, 0))
-    ##sound_jumpscare.play()
+    sound_jumpscare.play()
 
 def win():
     global game_state, night
@@ -191,6 +257,20 @@ def game_over():
     global game_state
     game_state = "gameover"
     jumpscare_fred()
+
+def draw_static():
+
+    # noise pixely
+    for i in range(2000):
+        x = random.randint(0,width)
+        y = random.randint(0,height)
+
+        c = random.randint(150,255)
+        screen.set_at((x,y),(c,c,c))
+
+    # scan lines
+    for y in range(0,height,4):
+        pygame.draw.line(screen,(30,30,30),(0,y),(width,y),1)
 
 def reset_night():
     global power, hour, time_counter, anim_pos
@@ -209,17 +289,6 @@ def reset_night():
 
 
 
-def get_night_settings(night):
-    if night == 1:
-        return random.randint(1, 4), 0.01 # freddy AI, drain
-    elif night == 2:
-        return random.randint(4, 6), 0.015
-    elif night == 3:
-        return random.randint(7, 8), 0.02
-    elif night == 4:
-        return random.randint(9, 10), 0.025
-    elif night == 5:
-        return random.randint(11, 14), 0.03
 
 while True:
     dt = clock.tick(60) / 1000.0
@@ -233,26 +302,29 @@ while True:
             if button_rect.collidepoint(event.pos):
                 game_state = "loading"
                 loading_start_time = pygame.time.get_ticks()
-                
+
+        if game_state == "camera" and event.type == pygame.MOUSEBUTTONDOWN:
+            for cam, rect in cam_buttons.items():
+                  if rect.collidepoint(event.pos):
+                    current_camera = cam
+                    sound_cam.play()
 
         if event.type == pygame.KEYDOWN and (game_state == "office" or game_state == "camera"):
 
-            # Kamery
+            #Kamery
             if event.key == pygame.K_c:
                 game_state = "camera" if game_state == "office" else "office"
-                
-
             # Přepínání kamer
             if game_state == "camera":
                 if event.key == pygame.K_1:
                     current_camera = 1
-                    #sound_cam.play()
+                    sound_cam.play()
                 if event.key == pygame.K_2:
                     current_camera = 2
-                    #sound_cam.play()
+                    sound_cam.play()
                 if event.key == pygame.K_3:
                     current_camera = 3
-                    #sound_cam.play()
+                    sound_cam.play()
                 if event.key == pygame.K_4:
                     current_camera = 4
 
@@ -260,7 +332,7 @@ while True:
             if event.key == pygame.K_d and game_state == "office":
                 left_door_closed = not left_door_closed
                 if left_door_closed:
-                    #sound_door.play()
+                    sound_door.play()
                     print()
                 if light_on == True:
                     light_on = not light_on
@@ -285,21 +357,46 @@ while True:
                         game_over()
             if event.key == pygame.K_u:
                 fred_AI = 20
+            if event.key == pygame.K_z:
+                power = 0
     # ====== Freddy movement ====
     fred_move()
-    if fred_loc != fred_pos:
-        ##sound_step.play()
-        fred_loc = fred_pos
+    fred_new_loc = fred_rooms[fred_pos]
+    if fred_new_loc != fred_loc:
+        sound_step.play()
+        fred_loc = fred_new_loc
+    bon_move()
+    bon_new_loc = bon_rooms[bon_pos]
+    if bon_new_loc != bon_loc:
+        sound_step.play()
+        bon_loc = bon_new_loc
+    chica_move()
+    chica_new_loc = chica_rooms[chica_pos]
+    if chica_new_loc != chica_loc:
+        sound_step.play()
+        chica_loc = chica_new_loc
 
     #====== Drain ====
     if game_state != "menu":
-        drain = 0.01
+        drain = drain_base
         if game_state == "camera":
             drain += 0.03
         if left_door_closed:
             drain += 0.05
         if light_on:
             drain += 0.2
+
+
+    #power -= drain * dt * 60
+
+    if power <= 0 and not power_out:
+        power = 0
+        power_out = True
+        game_state = "power_out"
+        left_door_closed = False
+        light_on = False
+        power_out_start = pygame.time.get_ticks()
+
     # ===== LOADING SCREEN ====
     if game_state == "loading":
         current_time = pygame.time.get_ticks()
@@ -329,7 +426,7 @@ while True:
         
 
     elif game_state == "camera":
-        screen.blit(cam_images[current_camera], (0, 0))
+        screen.blit(cam_images[current_camera], (0,0))
         # Freddy kamery
         fred_loc = fred_rooms[fred_pos]
         if fred_pos >= len(fred_rooms):
@@ -347,16 +444,32 @@ while True:
             bon_pos -= 1
         if bon_loc == current_camera:
             if bon_loc == 1:
-                screen.blit(bon_img, (width / 2.67, height / 2))
+                screen.blit(bon_imgs[1], (width / 2.67, height / 2))
             if bon_loc == 2:
-                screen.blit(bon_img, (width / 1, height / 1))
+                screen.blit(bon_imgs[1], (width / 1, height / 1))
             if bon_loc == 3:
-                screen.blit(bon_img, (width / 2.67, height / 2))
+                screen.blit(bon_imgs[1], (width / 2.67, height / 2))
+        # Chica kamery
+        chica_loc = chica_rooms[chica_pos]
 
+        if chica_pos >= len(chica_rooms):
+            chica_pos -= 1
 
+        if chica_loc == current_camera:
+            if chica_loc == 1:
+                screen.blit(chica_imgs[1], (width / 3, height / 2))
+            if chica_loc == 2:
+                screen.blit(chica_imgs[1], (width / 2.5, height / 2.5))
+            if chica_loc == 3:
+                screen.blit(chica_imgs[1], (width / 2, height / 2))
 
+                # Camera mapa
+        for cam, rect in cam_buttons.items():
+            pygame.draw.rect(screen, (0,150,0), rect, 2)
+            text = font.render(str(cam), True, (0,255,0))
+            screen.blit(text, (rect.x + 30, rect.y + 20))
+        draw_static()
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
-
 
     elif game_state == "win":
         if 'win_start_time' not in globals():
@@ -375,9 +488,18 @@ while True:
                 if night < max_nights:
                     night += 1
                     reset_night()
+                    fred_AI, bonnie_AI, chica_AI, drain_base = get_night_settings(night)
                 elif night == 7:
                     game_state = "custom_night"
-                
+    
+    elif game_state == "power_out":
+        screen.fill((0,0,0))
+
+        text = big_font.render("POWER OUT", True, (255,0,0))
+        screen.blit(text, (width/2 - 200, height/2 - 50))
+
+        if pygame.time.get_ticks() - power_out_start > 5000:
+            game_over()           
         
     elif game_state == "gameover":
         screen.blit(jumpscare_freddy_img, (0, 0))
