@@ -1,4 +1,4 @@
-import pygame, random, sys
+import pygame, random, sys, os
 
 pygame.init()
 
@@ -80,8 +80,37 @@ cam_buttons = {
     3: pygame.Rect(1030, 550, 80, 60),
     4: pygame.Rect(1100, 500, 80, 60),
 }
+# ===== Nights buttony ====
+night_buttons = {
+    1: pygame.Rect(100, 250, 200, 50),
+    2: pygame.Rect(100, 310, 200, 50),
+    3: pygame.Rect(100, 370, 200, 50),
+    4: pygame.Rect(100, 430, 200, 50),
+    5: pygame.Rect(100, 490, 200, 50),
+    6: pygame.Rect(100, 550, 200, 50),
+}
+reset_button = pygame.Rect(100, 610, 200, 50)
+
+custom_button = pygame.Rect(100, 700, 200, 50)
+# ===== Custom night buttony ====
+freddy_left = pygame.Rect(250,400,40,40)
+freddy_right = pygame.Rect(350,400,40,40)
+
+bonnie_left = pygame.Rect(550,400,40,40)
+bonnie_right = pygame.Rect(650,400,40,40)
+
+chica_left = pygame.Rect(850,400,40,40)
+chica_right = pygame.Rect(950,400,40,40)
+
+foxy_left = pygame.Rect(1150,400,40,40)
+foxy_right = pygame.Rect(1250,400,40,40)
+
+# ===== Cutom night ====
+custom_freddy_ai = 1
+custom_bonnie_ai = 1
+custom_chica_ai = 1
+
 # ===== Menu ====
-button_rect = pygame.Rect(100, 250, 200, 60)
 
 def draw_menu():
     screen.fill(BLACK)
@@ -89,11 +118,6 @@ def draw_menu():
     title = font.render("Five Nights at Freddy's", True, WHITE)
     screen.blit(menu_img, (0, 0))
     screen.blit(title, (100, 150))
-
-    # Tlačítko
-    pygame.draw.rect(screen, BLACK, button_rect)
-    text = font.render("New Game", True, WHITE)
-    screen.blit(text, (button_rect.x + 30, button_rect.y + 10))
 
     #Reset night
 def get_night_settings(night):
@@ -249,9 +273,11 @@ def jumpscare_fred():
     sound_jumpscare.play()
 
 def win():
-    global game_state, night
+    global game_state, night, max_unlocked_night
     game_state = "win"
-    night += 1
+    if night == max_unlocked_night and max_unlocked_night < 6:
+        max_unlocked_night += 1
+    save_progress(max_unlocked_night)
 
 def game_over():
     global game_state
@@ -287,8 +313,26 @@ def reset_night():
 
     game_state = "office"
 
+def load_progress():
+    if os.path.exists("save.txt"):
+        with open("save.txt", "r") as f:
+            return int(f.read())
+    return 1
 
+def save_progress(max_night):
+    with open("save.txt", "w") as f:
+        f.write(str(max_night))
 
+def reset_progress():
+    global max_unlocked_night
+    
+    max_unlocked_night = 1
+    
+    if os.path.exists("save.txt"):
+        os.remove("save.txt")
+
+# Nights
+max_unlocked_night = load_progress()
 
 while True:
     dt = clock.tick(60) / 1000.0
@@ -298,17 +342,56 @@ while True:
             pygame.quit()
             sys.exit()
 
-        if game_state == "menu" and event.type == pygame.MOUSEBUTTONDOWN:
-            if button_rect.collidepoint(event.pos):
-                game_state = "loading"
-                loading_start_time = pygame.time.get_ticks()
-
         if game_state == "camera" and event.type == pygame.MOUSEBUTTONDOWN:
             for cam, rect in cam_buttons.items():
                   if rect.collidepoint(event.pos):
                     current_camera = cam
                     sound_cam.play()
 
+        if game_state == "menu" and event.type == pygame.MOUSEBUTTONDOWN:
+            for n, rect in night_buttons.items():
+                if rect.collidepoint(event.pos) and n <= max_unlocked_night:
+                    night = n
+                    fred_AI,bonnie_AI, chica_AI, drain_base = get_night_settings(night)
+
+                    game_state = "loading"
+                    loading_start_time = pygame.time.get_ticks()
+
+        if game_state == "menu" and event.type == pygame.MOUSEBUTTONDOWN:
+            if reset_button.collidepoint(event.pos):
+                reset_progress()
+            if custom_button.collidepoint(event.pos):
+                game_state = "custom"
+
+        if game_state == "custom" and event.type == pygame.MOUSEBUTTONDOWN:
+
+            if freddy_left.collidepoint(event.pos):
+                freddy_ai = max(0, custom_freddy_ai-1)
+
+            if freddy_right.collidepoint(event.pos):
+                freddy_ai = min(20, freddy_ai+1)
+
+
+            if bonnie_left.collidepoint(event.pos):
+                bonnie_ai = max(0, bonnie_ai-1)
+
+            if bonnie_right.collidepoint(event.pos):
+                bonnie_ai = min(20, bonnie_ai+1)
+
+
+            if chica_left.collidepoint(event.pos):
+                chica_ai = max(0, chica_ai-1)
+
+            if chica_right.collidepoint(event.pos):
+                chica_ai = min(20, chica_ai+1)
+
+
+            if foxy_left.collidepoint(event.pos):
+                foxy_ai = max(0, foxy_ai-1)
+
+            if foxy_right.collidepoint(event.pos):
+                foxy_ai = min(20, foxy_ai+1)
+                
         if event.type == pygame.KEYDOWN and (game_state == "office" or game_state == "camera"):
 
             #Kamery
@@ -408,6 +491,35 @@ while True:
 
     if game_state == "menu":
         draw_menu()
+        font = pygame.font.SysFont(None, 40)
+
+        font = pygame.font.SysFont(None, 40)
+        pygame.draw.rect(screen,(80,20,20),reset_button)
+        pygame.draw.rect(screen,(255,255,255),reset_button,2)
+
+        pygame.draw.rect(screen,(40,40,40),custom_button)
+        pygame.draw.rect(screen,(255,255,255),custom_button,2)
+
+        text = font.render("CUSTOM NIGHT", True,(255,255,255))
+        screen.blit(text,(custom_button.x+10, custom_button.y+10))
+
+        reset_text = font.render("      RESET", True,(255,255,255))
+        screen.blit(reset_text,(reset_button.x+10, reset_button.y+10))
+        
+    for n, rect in night_buttons.items():
+
+        if n <= max_unlocked_night:
+            color = (50,50,50)
+            text = f"Night {n}"
+        else:
+            color = (30,30,30)
+            text = f"Night {n} 🔒"
+
+        pygame.draw.rect(screen, color, rect)
+        pygame.draw.rect(screen,(255,255,255),rect,2)
+
+        txt = font.render(text, True, (255,255,255))
+        screen.blit(txt,(rect.x + 40, rect.y + 10))
     
     if game_state == "loading":
         screen.blit(loading_img, (0, 0))
@@ -485,13 +597,8 @@ while True:
             screen.blit(time_win, time_win_rect)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                if night < max_nights:
-                    night += 1
-                    reset_night()
-                    fred_AI, bonnie_AI, chica_AI, drain_base = get_night_settings(night)
-                elif night == 7:
-                    game_state = "custom_night"
-    
+                reset_night()
+                
     elif game_state == "power_out":
         screen.fill((0,0,0))
 
