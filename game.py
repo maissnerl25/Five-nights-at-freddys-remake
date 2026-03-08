@@ -9,6 +9,7 @@ clock = pygame.time.Clock()
 
 font = pygame.font.SysFont(None, 30)
 big_font = pygame.font.SysFont(None, 80)
+arrow_font = pygame.font.SysFont(None, 50)
 
 # ===== Načtení obrázků =====
 menu_img = pygame.transform.scale(
@@ -46,14 +47,21 @@ fred_imgs = {
     3: pygame.image.load("assets/eps3.png")         
 }          
 bon_imgs = { 
-    1: pygame.image.load("assets/bonnie.png").convert_alpha()
+    1: pygame.image.load("assets/diddy1.png").convert_alpha(),
+    2: pygame.image.load("assets/diddy2.png").convert_alpha(),
+    3: pygame.image.load("assets/diddy3.png").convert_alpha()
 }
-
 chica_imgs = {
     1: pygame.image.load("assets/chirk1.png").convert_alpha(),
 }  
 jumpscare_freddy_img = pygame.transform.scale(
-    pygame.image.load("assets/jumpscare.png"), (width, height)
+    pygame.image.load("assets/eps.jumpscare.png"), (width, height)
+)
+jumpscare_bonnie_img = pygame.transform.scale(
+    pygame.image.load("assets/diddy.jumpscare.png"), (width, height)
+)
+jumpscare_chica_img = pygame.transform.scale(
+    pygame.image.load("assets/chirk.jumpscare.png"), (width, height)
 )
 # ===== Zvuky =====
 sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
@@ -69,6 +77,8 @@ night = 1
 max_nights = 6
 power_out = False
 power_out_start = 0
+killed_by = None
+jumpscare_played = False
 # ===== Barvy ====
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -91,25 +101,26 @@ night_buttons = {
 }
 reset_button = pygame.Rect(100, 610, 200, 50)
 
+ready_button = pygame.Rect(1100,650,200,60)
+
 custom_button = pygame.Rect(100, 700, 200, 50)
 # ===== Custom night buttony ====
-freddy_left = pygame.Rect(250,400,40,40)
-freddy_right = pygame.Rect(350,400,40,40)
+freddy_left = pygame.Rect(150,400,40,40)
+freddy_right = pygame.Rect(250,400,40,40)
 
-bonnie_left = pygame.Rect(550,400,40,40)
-bonnie_right = pygame.Rect(650,400,40,40)
+bonnie_left = pygame.Rect(450,400,40,40)
+bonnie_right = pygame.Rect(550,400,40,40)
 
-chica_left = pygame.Rect(850,400,40,40)
-chica_right = pygame.Rect(950,400,40,40)
+chica_left = pygame.Rect(650,400,40,40)
+chica_right = pygame.Rect(750,400,40,40)
 
-foxy_left = pygame.Rect(1150,400,40,40)
-foxy_right = pygame.Rect(1250,400,40,40)
-
-# ===== Cutom night ====
-custom_freddy_ai = 1
-custom_bonnie_ai = 1
-custom_chica_ai = 1
-
+foxy_left = pygame.Rect(950,400,40,40)
+foxy_right = pygame.Rect(1050,400,40,40)
+# ===== AI's ====
+fred_AI = 1
+bonnie_AI = 1
+chica_AI = 1
+foxy_AI = 1
 # ===== Menu ====
 
 def draw_menu():
@@ -159,38 +170,38 @@ fred_pr_loc = fred_loc
 movement_oppurtunity_fred = 0
 
 def fred_move():
-    if game_state != "menu":
-        if game_state != "loading":
-        
-            global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time    
-#====== ATTACK CHECK ====
-        
-            fred_loc = fred_rooms[fred_pos]
-            if fred_loc == "door":
-                if left_door_closed:
-                    fred_pos = 0
-                    wait_start_time = pygame.time.get_ticks()
-                else:
-                    game_over()
-
-            if wait_start_time == 0:
-                    wait_start_time = pygame.time.get_ticks()
-
-            wait_fred = pygame.time.get_ticks() - wait_start_time
-
-            if wait_fred > 7000:
+    if game_state not in ["menu","loading","custom","win","gameover"]:
+        global movement_oppurtunity_fred, fred_AI, fred_pos, wait_start_time    
+                        #====== ATTACK CHECK ====
+                    
+        fred_loc = fred_rooms[fred_pos]
+        if fred_loc == "door":
+            if left_door_closed:
+                fred_pos = 0
                 wait_start_time = pygame.time.get_ticks()
+            else:
+                game_over("freddy")
 
-                movement_oppurtunity_fred = random.randint(1, 20)
-                print(movement_oppurtunity_fred, fred_AI)
-                print(fred_pos)
+        if wait_start_time == 0:
+            wait_start_time = pygame.time.get_ticks()
 
-                if movement_oppurtunity_fred <= fred_AI:
-                    fred_pos += 1
+        wait_fred = pygame.time.get_ticks() - wait_start_time
 
-                    if fred_pos >= len(fred_rooms):
-                        fred_pos -= 1
-                    wait_start_time = pygame.time.get_ticks()  # RESET TIMERU
+        if wait_fred > 7000:
+            wait_start_time = pygame.time.get_ticks()
+
+            movement_oppurtunity_fred = random.randint(1, 20)
+            print("Epstein")
+            print(movement_oppurtunity_fred, fred_AI)
+            print(fred_pos)
+
+            if movement_oppurtunity_fred <= fred_AI:
+                fred_pos += 1
+
+                if fred_pos >= len(fred_rooms):
+                    fred_pos -= 1
+                wait_start_time = pygame.time.get_ticks()  # RESET TIMERU
+
 # ======= BONNIE ====
 bon_rooms = [1, 2, 3, "door"]
 bon_pos = 0
@@ -201,33 +212,38 @@ movement_oppurtunity_bon = 0
 
 
 def bon_move():
-    global bon_pos, wait_start_time_bon
+    if game_state not in ["menu","loading","custom","win","gameover"]:
+        global bon_pos, wait_start_time_bon
+        
+        bon_loc = bon_rooms[bon_pos]
 
-    bon_loc = bon_rooms[bon_pos]
+        if bon_loc == "door":
+            if left_door_closed:
+                bon_pos = 0
+            else:
+                game_over("bonnie")
 
-    if bon_loc == "door":
-        if left_door_closed:
-            bon_pos = 0
-        else:
-            game_over()
+        if wait_start_time_bon == 0:
+            wait_start_time_bon = pygame.time.get_ticks()
 
-    if wait_start_time_bon == 0:
-        wait_start_time_bon = pygame.time.get_ticks()
+        wait = pygame.time.get_ticks() - wait_start_time_bon
 
-    wait = pygame.time.get_ticks() - wait_start_time_bon
+        if wait > 5000:   
+            wait_start_time_bon = pygame.time.get_ticks()
 
-    if wait > 5000:   
-        wait_start_time_bon = pygame.time.get_ticks()
-
-        movement_oppurtunity_bon = random.randint(1,20)
-
-        if movement_oppurtunity_bon <= bonnie_AI:
-            bon_pos += 1
+            movement_oppurtunity_bon = random.randint(1,20)
+            print("diddy")
+            print(movement_oppurtunity_bon, bonnie_AI)
+            print(bon_pos)
+                                
+            if movement_oppurtunity_bon <= bonnie_AI:
+                bon_pos += 1
+                sound_step.play()
 
             if bon_pos >= len(bon_rooms):
                 bon_pos = len(bon_rooms)-1
 
-            sound_step.play()
+        
 # ====== Chirk ====
 chica_rooms = [1, 2, 3, "door"]
 chica_pos = 0
@@ -238,40 +254,48 @@ chica_pr_loc = chica_loc
 wait_start_time_chica = 0
 
 def chica_move():
-    global chica_pos, wait_start_time_chica
+    if game_state not in ["menu","loading","custom","win","gameover"]:
+        global chica_pos, wait_start_time_chica
 
-    chica_loc = chica_rooms[chica_pos]
+        chica_loc = chica_rooms[chica_pos]
 
-    if chica_loc == "door":
-        if left_door_closed:
-            chica_pos = 0
-        else:
-            game_over()
+        if chica_loc == "door":
+            if left_door_closed:
+                chica_pos = 0
+            else:
+                game_over("chica")
 
-    if wait_start_time_chica == 0:
-        wait_start_time_chica = pygame.time.get_ticks()
+        if wait_start_time_chica == 0:
+            wait_start_time_chica = pygame.time.get_ticks()
 
-    wait = pygame.time.get_ticks() - wait_start_time_chica
+        wait = pygame.time.get_ticks() - wait_start_time_chica
 
-    if wait > 6000:
-        wait_start_time_chica = pygame.time.get_ticks()
+        if wait > 6000:
+            wait_start_time_chica = pygame.time.get_ticks()
 
-        movement_oppurtunity_chica = random.randint(1,20)
-
-        if movement_oppurtunity_chica <= chica_AI:
-            chica_pos += 1
-
-            if chica_pos >= len(chica_rooms):
-                chica_pos = len(chica_rooms)-1
-
-            sound_step.play()
+            movement_oppurtunity_chica = random.randint(1,20)
+            print("kirk")
+            print(movement_oppurtunity_chica, chica_AI)
+            print(chica_pos)
+                            
+            if movement_oppurtunity_chica <= chica_AI:
+                chica_pos += 1
+                sound_step.play()
+        if chica_pos >= len(chica_rooms):
+            chica_pos = len(chica_rooms)-1
+            
 
 
 
 def jumpscare_fred():
     screen.blit(jumpscare_freddy_img, (0, 0))
     sound_jumpscare.play()
-
+def jumpscare_bonnie():
+    screen.blit(jumpscare_bonnie_img, (0, 0))
+    sound_jumpscare.play()
+def jumpscare_chica():
+    screen.blit(jumpscare_chica_img, (0, 0))
+    sound_jumpscare.play()
 def win():
     global game_state, night, max_unlocked_night
     game_state = "win"
@@ -279,11 +303,12 @@ def win():
         max_unlocked_night += 1
     save_progress(max_unlocked_night)
 
-def game_over():
-    global game_state
+def game_over(animatronic):
+    global game_state, killed_by
+    killed_by = animatronic
+    jumpscare_played = False
     game_state = "gameover"
-    jumpscare_fred()
-
+    
 def draw_static():
 
     # noise pixely
@@ -366,32 +391,36 @@ while True:
         if game_state == "custom" and event.type == pygame.MOUSEBUTTONDOWN:
 
             if freddy_left.collidepoint(event.pos):
-                freddy_ai = max(0, custom_freddy_ai-1)
+                fred_AI = max(0, fred_AI-1)
 
             if freddy_right.collidepoint(event.pos):
-                freddy_ai = min(20, freddy_ai+1)
+                fred_AI = min(20, fred_AI+1)
 
 
             if bonnie_left.collidepoint(event.pos):
-                bonnie_ai = max(0, bonnie_ai-1)
+                bonnie_AI = max(0, bonnie_AI-1)
 
             if bonnie_right.collidepoint(event.pos):
-                bonnie_ai = min(20, bonnie_ai+1)
+                bonnie_AI = min(20, bonnie_AI+1)
 
 
             if chica_left.collidepoint(event.pos):
-                chica_ai = max(0, chica_ai-1)
+                chica_AI = max(0, chica_AI-1)
 
             if chica_right.collidepoint(event.pos):
-                chica_ai = min(20, chica_ai+1)
+                chica_AI = min(20, chica_AI+1)
 
 
             if foxy_left.collidepoint(event.pos):
-                foxy_ai = max(0, foxy_ai-1)
+                foxy_AI = max(0, foxy_AI-1)
 
             if foxy_right.collidepoint(event.pos):
-                foxy_ai = min(20, foxy_ai+1)
-                
+                foxy_AI = min(20, foxy_AI+1)
+
+
+            if ready_button.collidepoint(event.pos):
+                game_state = "loading"   
+
         if event.type == pygame.KEYDOWN and (game_state == "office" or game_state == "camera"):
 
             #Kamery
@@ -506,21 +535,55 @@ while True:
         reset_text = font.render("      RESET", True,(255,255,255))
         screen.blit(reset_text,(reset_button.x+10, reset_button.y+10))
         
-    for n, rect in night_buttons.items():
+        for n, rect in night_buttons.items():
 
-        if n <= max_unlocked_night:
-            color = (50,50,50)
-            text = f"Night {n}"
-        else:
-            color = (30,30,30)
-            text = f"Night {n} 🔒"
+            if n <= max_unlocked_night:
+                color = (50,50,50)
+                text = f"Night {n}"
+            else:
+                color = (100,30,30)
+                text = f"Night {n} ×"
 
-        pygame.draw.rect(screen, color, rect)
-        pygame.draw.rect(screen,(255,255,255),rect,2)
+            pygame.draw.rect(screen, color, rect)
+            pygame.draw.rect(screen,(255,255,255),rect,2)
 
-        txt = font.render(text, True, (255,255,255))
-        screen.blit(txt,(rect.x + 40, rect.y + 10))
-    
+            txt = font.render(text, True, (255,255,255))
+            screen.blit(txt,(rect.x + 40, rect.y + 10))
+    if game_state == "custom":
+
+        title = font.render("Customize Night",True,(255,255,255))
+        screen.blit(title,(width / 2.67 ,100))
+
+        # Freddy
+        screen.blit(font.render("Epstein",True,(255,255,255)),(150,250))
+        screen.blit(font.render(str(fred_AI),True,(255,255,255)),(200,400))
+
+        pygame.draw.rect(screen,(100,100,100),freddy_left)
+        pygame.draw.rect(screen,(100,100,100),freddy_right) 
+
+        # Bonnie
+        screen.blit(font.render("Diddy",True,(255,255,255)),(450,250))
+        screen.blit(font.render(str(bonnie_AI),True,(255,255,255)),(500,400))
+
+        pygame.draw.rect(screen,(100,100,100),bonnie_left)
+        pygame.draw.rect(screen,(100,100,100),bonnie_right)
+
+        # Chica
+        screen.blit(font.render("Kirk",True,(255,255,255)),(650,250))
+        screen.blit(font.render(str(chica_AI),True,(255,255,255)),(700,400))
+
+        pygame.draw.rect(screen,(100,100,100),chica_left)
+        pygame.draw.rect(screen,(100,100,100),chica_right)
+
+        # Foxy
+        screen.blit(font.render("Hawkings",True,(255,255,255)),(950,250))
+        screen.blit(font.render(str(foxy_AI),True,(255,255,255)),(1000,400))
+
+        pygame.draw.rect(screen,(100,100,100),foxy_left)
+        pygame.draw.rect(screen,(100,100,100),foxy_right)
+
+        pygame.draw.rect(screen,(120,120,120),ready_button)
+
     if game_state == "loading":
         screen.blit(loading_img, (0, 0))
 
@@ -558,9 +621,9 @@ while True:
             if bon_loc == 1:
                 screen.blit(bon_imgs[1], (width / 2.67, height / 2))
             if bon_loc == 2:
-                screen.blit(bon_imgs[1], (width / 1, height / 1))
+                screen.blit(bon_imgs[3], (width * 0, height / 2))
             if bon_loc == 3:
-                screen.blit(bon_imgs[1], (width / 2.67, height / 2))
+                screen.blit(bon_imgs[2], (width / 2.67, height / 2))
         # Chica kamery
         chica_loc = chica_rooms[chica_pos]
 
@@ -609,9 +672,19 @@ while True:
             game_over()           
         
     elif game_state == "gameover":
-        screen.blit(jumpscare_freddy_img, (0, 0))
-        text = big_font.render("GAME OVER", True, (255, 0, 0))
-        #screen.blit(text, (200, 250))
+        global jumpscare_player
+        if not jumpscare_played:
+            sound_jumpscare.play()
+            jumpscare_played = True
+
+        if killed_by == "freddy":
+            screen.blit(jumpscare_freddy_img, (0,0))
+
+        if killed_by == "bonnie":
+            screen.blit(jumpscare_bonnie_img, (0,0))
+
+        if killed_by == "chica":
+            screen.blit(jumpscare_chica_img, (0,0))
 
     # HUD
     if game_state != "menu":
