@@ -39,6 +39,8 @@ cam_images = {
     2: pygame.transform.scale(pygame.image.load("assets/cam2.png"), (width, height)),
     3: pygame.transform.scale(pygame.image.load("assets/cam3.png"), (width, height)),
     4: pygame.transform.scale(pygame.image.load("assets/cam4.png"), (width, height)),
+    5: pygame.transform.scale(pygame.image.load("assets/cam5.png"), (width, height)),
+    6: pygame.transform.scale(pygame.image.load("assets/cam6.png"), (width, height)),
 }
 
 fred_imgs = {
@@ -53,6 +55,8 @@ bon_imgs = {
 }
 chica_imgs = {
     1: pygame.image.load("assets/chirk1.png").convert_alpha(),
+    2: pygame.image.load("assets/chirk2.png").convert_alpha(),
+    3: pygame.image.load("assets/chirk3.png").convert_alpha()
 }  
 jumpscare_freddy_img = pygame.transform.scale(
     pygame.image.load("assets/eps.jumpscare.png"), (width, height)
@@ -86,9 +90,12 @@ GRAY = (100, 100, 100)
 # ===== Kamery buttony ====
 cam_buttons = {
     1: pygame.Rect(950, 500, 80, 60),
-    2: pygame.Rect(1030, 450, 80, 60),
-    3: pygame.Rect(1030, 550, 80, 60),
-    4: pygame.Rect(1100, 500, 80, 60),
+    2: pygame.Rect(1030, 500, 80, 60),
+    3: pygame.Rect(1110, 500, 80, 60),
+    4: pygame.Rect(950, 560, 80, 60),
+    5: pygame.Rect(1030, 560, 80, 60),
+    6: pygame.Rect(1110, 560, 80, 60),
+    
 }
 # ===== Nights buttony ====
 night_buttons = {
@@ -245,7 +252,7 @@ def bon_move():
 
         
 # ====== Chirk ====
-chica_rooms = [1, 2, 3, "door"]
+chica_rooms = [5, 6, 4, "door"]
 chica_pos = 0
 chica_loc = chica_rooms[chica_pos]
 chica_pr_loc = chica_loc
@@ -331,12 +338,12 @@ def reset_night():
     hour = 12
     time_counter = 0
 
-    anim_pos = 0
+    fred_pos = 0
+    bon_pos = 0
+    chica_pos = 0
     left_door_closed = False
     light_on = False
     current_camera = 1
-
-    game_state = "office"
 
 def load_progress():
     if os.path.exists("save.txt"):
@@ -361,6 +368,23 @@ max_unlocked_night = load_progress()
 
 while True:
     dt = clock.tick(60) / 1000.0
+    # ===== TIME SYSTEM =====
+    if game_state in ["office","camera","power_out"]:
+
+        time_counter += dt
+
+        if time_counter >= TIME_PER_HOUR:
+            time_counter = 0
+            if hour == 12: 
+                hour = 1
+            else:
+                hour += 1
+
+            
+            print("Hour:", hour)
+
+            if hour >= 6:
+                win()
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -631,12 +655,12 @@ while True:
             chica_pos -= 1
 
         if chica_loc == current_camera:
-            if chica_loc == 1:
-                screen.blit(chica_imgs[1], (width / 3, height / 2))
-            if chica_loc == 2:
-                screen.blit(chica_imgs[1], (width / 2.5, height / 2.5))
-            if chica_loc == 3:
-                screen.blit(chica_imgs[1], (width / 2, height / 2))
+            if chica_loc == 5:
+                screen.blit(chica_imgs[2], (width / 3, height / 3))
+            if chica_loc == 6:
+                screen.blit(chica_imgs[3], (width / 2.5, height / 3))
+            if chica_loc == 4:
+                screen.blit(chica_imgs[1], (width / 2, height / 3))
 
                 # Camera mapa
         for cam, rect in cam_buttons.items():
@@ -661,6 +685,7 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 reset_night()
+                game_state = "menu"
                 
     elif game_state == "power_out":
         screen.fill((0,0,0))
@@ -687,14 +712,12 @@ while True:
             screen.blit(jumpscare_chica_img, (0,0))
 
     # HUD
-    if game_state != "menu":
-        if game_state != "loading":
-            if game_state != "gameover":
-                power_text = font.render(f"POWER: {int(power)}%", True, (255, 255, 0))
-                time_text = font.render(f"TIME: {hour} AM", True, (0, 200, 255))
-                night_text = font.render(f"{night}. NIGHT", True, (255, 255, 255))
-                screen.blit(power_text, (20, 20))
-                screen.blit(time_text, (width - 200, 20))
-                screen.blit(night_text, (width - 200, 60))
+    if game_state not in ["menu","loading","custom","win","gameover"]:
+        power_text = font.render(f"POWER: {int(power)}%", True, (255, 255, 0))
+        time_text = font.render(f"TIME: {hour} AM", True, (0, 200, 255))
+        night_text = font.render(f"{night}. NIGHT", True, (255, 255, 255))
+        screen.blit(power_text, (20, 20))
+        screen.blit(time_text, (width - 200, 20))
+        screen.blit(night_text, (width - 200, 60))
 
     pygame.display.flip()
