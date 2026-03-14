@@ -466,13 +466,9 @@ while True:
 
             # Dveře
             if event.key == pygame.K_d and game_state == "office":
-                left_door_closed = not left_door_closed
-                if left_door_closed:
-                    sound_door.play()
-                    print()
-                if light_on == True:
-                    light_on = not light_on
-
+                left_door_closed = True
+                sound_door.play()
+            
             # Světlo
             if event.key == pygame.K_l and game_state == "office":
                 light_on = not light_on
@@ -495,6 +491,11 @@ while True:
                 fred_AI = 20
             if event.key == pygame.K_z:
                 power = 0
+        if event.type == pygame.KEYUP:
+
+            if event.key == pygame.K_d and game_state == "office":
+                left_door_closed = False
+                    
     # ====== Freddy movement ====
     fred_move()
     fred_new_loc = fred_rooms[fred_pos]
