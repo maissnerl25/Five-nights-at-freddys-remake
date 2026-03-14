@@ -58,6 +58,9 @@ chica_imgs = {
     2: pygame.image.load("assets/chirk2.png").convert_alpha(),
     3: pygame.image.load("assets/chirk3.png").convert_alpha()
 }  
+foxy_imgs = {
+    1: pygame.image.load("assets/foxy1.png").convert_alpha(),
+}
 jumpscare_freddy_img = pygame.transform.scale(
     pygame.image.load("assets/eps.jumpscare.png"), (width, height)
 )
@@ -83,6 +86,12 @@ power_out = False
 power_out_start = 0
 killed_by = None
 jumpscare_played = False
+# ===== GENERATOR ====
+generator_active = False
+generator_start = 0
+GENERATOR_TIME = 5000   # 5 sekund
+GENERATOR_RECHARGE = 20 # kolik % energie se dobije
+
 # ===== Barvy ====
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -331,7 +340,7 @@ def draw_static():
         pygame.draw.line(screen,(30,30,30),(0,y),(width,y),1)
 
 def reset_night():
-    global power, hour, time_counter, anim_pos
+    global power, hour, time_counter, fred_pos, bon_pos, chica_pos
     global left_door_closed, light_on, current_camera, game_state
 
     power = 100.0
@@ -448,7 +457,7 @@ while True:
         if event.type == pygame.KEYDOWN and (game_state == "office" or game_state == "camera"):
 
             #Kamery
-            if event.key == pygame.K_c:
+            if event.key == pygame.K_c and generator_active == False:
                 game_state = "camera" if game_state == "office" else "office"
             # Přepínání kamer
             if game_state == "camera":
@@ -466,13 +475,24 @@ while True:
 
             # Dveře
             if event.key == pygame.K_d and game_state == "office":
-                left_door_closed = True
-                sound_door.play()
+                if generator_active == False:
+                    left_door_closed = True
+                    sound_door.play()
             
             # Světlo
             if event.key == pygame.K_l and game_state == "office":
                 light_on = not light_on
-                
+
+            # Generator
+            if event.key == pygame.K_g and game_state == "office":
+                if not generator_active:
+                    generator_active = True
+                    generator_start = pygame.time.get_ticks()
+
+                    game_state = "power_saving"
+
+                    left_door_closed = False
+                    light_on = False
 
             #secret
             if event.key == pygame.K_o:
@@ -514,17 +534,23 @@ while True:
         chica_loc = chica_new_loc
 
     #====== Drain ====
-    if game_state != "menu":
+    if game_state in ["office", "camera"]:
+        
         drain = drain_base
+
         if game_state == "camera":
             drain += 0.03
+
         if left_door_closed:
             drain += 0.05
+
         if light_on:
             drain += 0.2
 
+        # odečítání energie
+        power -= drain * dt * 60
 
-    #power -= drain * dt * 60
+    
 
     if power <= 0 and not power_out:
         power = 0
@@ -534,6 +560,19 @@ while True:
         light_on = False
         power_out_start = pygame.time.get_ticks()
 
+
+    if game_state == "power_saving":
+
+        if pygame.time.get_ticks() - generator_start > GENERATOR_TIME:
+
+            power += GENERATOR_RECHARGE
+
+            if power > 100:
+                power = 100
+
+            game_state = "office"
+            power_saving = False
+            generator_active = False
     # ===== LOADING SCREEN ====
     if game_state == "loading":
         current_time = pygame.time.get_ticks()
@@ -671,6 +710,16 @@ while True:
         draw_static()
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
 
+    elif game_state == "power_saving":
+
+        screen.fill((0,0,0))
+
+        text = big_font.render("POWER SAVING", True, (255,255,0))
+        screen.blit(power_out_img, (0, 0))
+
+        text2 = font.render("SYSTEMS OFFLINE", True, (255,255,255))
+        screen.blit(text2, (width/2 - 100, height/2 + 20))
+        
     elif game_state == "win":
         if 'win_start_time' not in globals():
             win_start_time = pygame.time.get_ticks()
