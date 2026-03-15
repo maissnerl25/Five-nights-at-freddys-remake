@@ -80,6 +80,10 @@ sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
 sound_ambient = pygame.mixer.Sound("assets/sound_ambient.wav")
 sound_light_out = pygame.mixer.Sound("assets/sound_lights_out.wav")
 sound_cry = pygame.mixer.Sound("assets/sound_cry.wav")
+
+sound_ambient.set_volume(0.2)
+sound_light_out.set_volume(0.1)
+sound_cry.set_volume(0.3)
 # ===== Stav hry =====
 game_state = "menu"   # office / camera / win / gameover / menu
 current_camera = 1
@@ -340,6 +344,7 @@ def game_over(animatronic):
     killed_by = animatronic
     jumpscare_played = False
     game_state = "gameover"
+
     
 def draw_static():
 
@@ -467,6 +472,7 @@ while True:
             for n, rect in night_buttons.items():
                 if rect.collidepoint(event.pos) and n <= max_unlocked_night:
                     night = n
+                    TIME_PER_HOUR = 20 + (10 * night)
                     fred_AI,bonnie_AI, chica_AI, drain_base = get_night_settings(night)
 
                     game_state = "loading"
@@ -509,7 +515,13 @@ while True:
 
 
             if ready_button.collidepoint(event.pos):
-                game_state = "loading"   
+                game_state = "loading"  
+
+        if game_state == "win":
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    reset_night()
+                    game_state = "menu"
 
         if event.type == pygame.KEYDOWN and (game_state == "office" or game_state == "camera"):
 
@@ -831,19 +843,22 @@ while True:
         screen.fill((0,0,0))
 
         text = big_font.render("POWER OUT", True, (255,0,0))
-        screen.blit(power_out_img(0, 0))
+        screen.blit(power_out_img, (0, 0))
         sound_ambient.stop()
         sound_light_out.play()
 
         if pygame.time.get_ticks() - power_out_start > 5000:
-            game_over()           
+            game_over("freddy")
+            killed_by = "freddy"           
         
     elif game_state == "gameover":
         global jumpscare_player
         if not jumpscare_played:
             sound_jumpscare.play()
             jumpscare_played = True
-
+        sound_cry.stop()
+        sound_ambient.stop()
+        sound_step.stop()
         if killed_by == "freddy":
             screen.blit(jumpscare_freddy_img, (0,0))
 
