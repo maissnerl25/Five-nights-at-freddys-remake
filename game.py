@@ -4,7 +4,7 @@ pygame.init()
 
 width, height = 1200, 800
 screen = pygame.display.set_mode((width, height))
-pygame.display.set_caption("FNAF Prototype")
+pygame.display.set_caption("Five nights at Epstein's")
 clock = pygame.time.Clock()
 
 font = pygame.font.SysFont(None, 30)
@@ -61,6 +61,8 @@ chica_imgs = {
 foxy_imgs = {
     1: pygame.image.load("assets/foxy1.png").convert_alpha(),
 }
+kid_img = pygame.image.load("assets/crying.kid.png").convert_alpha()
+
 jumpscare_freddy_img = pygame.transform.scale(
     pygame.image.load("assets/eps.jumpscare.png"), (width, height)
 )
@@ -75,7 +77,9 @@ sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
 sound_door = pygame.mixer.Sound("assets/sound_door.wav")
 sound_step = pygame.mixer.Sound("assets/sound_step.wav")
 sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
-
+sound_ambient = pygame.mixer.Sound("assets/sound_ambient.wav")
+sound_light_out = pygame.mixer.Sound("assets/sound_lights_out.wav")
+sound_cry = pygame.mixer.Sound("assets/sound_cry.wav")
 # ===== Stav hry =====
 game_state = "menu"   # office / camera / win / gameover / menu
 current_camera = 1
@@ -91,7 +95,19 @@ generator_active = False
 generator_start = 0
 GENERATOR_TIME = 5000   # 5 sekund
 GENERATOR_RECHARGE = 20 # kolik % energie se dobije
+# ===== Event ====
+random_event_done = False
+random_event_active = False
+random_event_start = 0
+RANDOM_EVENT_TIME = 4000
+# ===== 2. EVENT ====
+kid_active = False
+kid_camera = None
+kid_spawn_time = 0
+kid_seen = False
 
+KID_MAX_TIME = 8000
+KID_SEEN_TIME = 4000
 # ===== Barvy ====
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -142,7 +158,7 @@ foxy_AI = 1
 def draw_menu():
     screen.fill(BLACK)
 
-    title = font.render("Five Nights at Freddy's", True, WHITE)
+    title = font.render("Five nights at Epstein's", True, WHITE)
     screen.blit(menu_img, (0, 0))
     screen.blit(title, (100, 150))
 
@@ -338,6 +354,19 @@ def draw_static():
     # scan lines
     for y in range(0,height,4):
         pygame.draw.line(screen,(30,30,30),(0,y),(width,y),1)
+def draw_event_static():
+
+    # noise pixely
+    for i in range(10000):
+        x = random.randint(0,width)
+        y = random.randint(0,height)
+
+        c = random.randint(150,255)
+        screen.set_at((x,y),(c,c,c))
+
+    # scan lines
+    for y in range(0,height,4):
+        pygame.draw.line(screen,(30,30,30),(0,y),(width,y),1)
 
 def reset_night():
     global power, hour, time_counter, fred_pos, bon_pos, chica_pos
@@ -394,7 +423,35 @@ while True:
 
             if hour >= 6:
                 win()
-    
+    if not random_event_done and hour >= 2 and hour <= 4 and game_state in ["office","camera"]:
+    # ====== EVENT ====
+        if random.randint(1,1000) == 1:  # malá šance každý frame
+            random_event_active = True
+            random_event_start = pygame.time.get_ticks()
+            random_event_done = True
+    if random_event_active:
+        if pygame.time.get_ticks() - random_event_start > RANDOM_EVENT_TIME:
+            random_event_active = False
+    # ===== KID EVENT ====
+    if not kid_active and game_state in ["office","camera"]:
+        kid_chance = random.randint(1, 5000)
+        if kid_chance == 1:  
+            kid_active = True
+            kid_camera = random.randint(1,6)
+            kid_spawn_time = pygame.time.get_ticks()
+            kid_seen = False
+            sound_cry.play()
+    if kid_active:
+
+        elapsed = pygame.time.get_ticks() - kid_spawn_time
+
+        if kid_seen and elapsed > KID_SEEN_TIME:
+            kid_active = False
+            sound_cry.stop()
+        elif not kid_seen and elapsed > KID_MAX_TIME:
+            power -= 15
+            kid_active = False
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -459,6 +516,7 @@ while True:
             #Kamery
             if event.key == pygame.K_c and generator_active == False:
                 game_state = "camera" if game_state == "office" else "office"
+                left_door_closed = False
             # Přepínání kamer
             if game_state == "camera":
                 if event.key == pygame.K_1:
@@ -490,7 +548,8 @@ while True:
                     generator_start = pygame.time.get_ticks()
 
                     game_state = "power_saving"
-
+                    sound_ambient.stop()
+                    sound_light_out.play()
                     left_door_closed = False
                     light_on = False
 
@@ -508,9 +567,26 @@ while True:
                     else:
                         game_over()
             if event.key == pygame.K_u:
-                fred_AI = 20
+                if hour == 12:
+                    hour = 1
+                else:
+                    hour += 1
+            
             if event.key == pygame.K_z:
                 power = 0
+            if event.key == pygame.K_0:
+                if random_event_active == True:
+                    random_event_active = False
+                else: 
+                    random_event_active = True
+            if event.key == pygame.K_9:
+                kid_active = True
+                kid_camera = random.randint(1,6)
+                kid_spawn_time = pygame.time.get_ticks()
+                kid_seen = False
+                sound_cry.play()
+
+
         if event.type == pygame.KEYUP:
 
             if event.key == pygame.K_d and game_state == "office":
@@ -569,7 +645,7 @@ while True:
 
             if power > 100:
                 power = 100
-
+            sound_ambient.play(-1)
             game_state = "office"
             power_saving = False
             generator_active = False
@@ -578,7 +654,7 @@ while True:
         current_time = pygame.time.get_ticks()
         if current_time - loading_start_time > 3000: 
             game_state = "office"
-
+            sound_ambient.play(-1)
     # ===== Vykreslení =====
     screen.fill((0, 0, 0))
 
@@ -625,28 +701,33 @@ while True:
         pygame.draw.rect(screen,(100,100,100),freddy_left)
         pygame.draw.rect(screen,(100,100,100),freddy_right) 
 
+        screen.blit(arrow_font.render("<", True, WHITE),
+            (freddy_left.centerx - 10, freddy_left.centery - 15))
+        screen.blit(arrow_font.render(">", True, WHITE),
+            (freddy_right.centerx - 10, freddy_right.centery - 15))
+        
         # Bonnie
         screen.blit(font.render("Diddy",True,(255,255,255)),(450,250))
         screen.blit(font.render(str(bonnie_AI),True,(255,255,255)),(500,400))
-
+        
         pygame.draw.rect(screen,(100,100,100),bonnie_left)
         pygame.draw.rect(screen,(100,100,100),bonnie_right)
+        screen.blit(arrow_font.render("<", True, WHITE),
+            (bonnie_left.centerx - 10, bonnie_left.centery - 15))
 
+        screen.blit(arrow_font.render(">", True, WHITE),
+            (bonnie_right.centerx - 10, bonnie_right.centery - 15))
         # Chica
         screen.blit(font.render("Kirk",True,(255,255,255)),(650,250))
         screen.blit(font.render(str(chica_AI),True,(255,255,255)),(700,400))
 
         pygame.draw.rect(screen,(100,100,100),chica_left)
         pygame.draw.rect(screen,(100,100,100),chica_right)
+        screen.blit(arrow_font.render("<", True, WHITE),
+            (chica_left.centerx - 10, chica_left.centery - 15))
 
-        # Foxy
-        screen.blit(font.render("Hawkings",True,(255,255,255)),(950,250))
-        screen.blit(font.render(str(foxy_AI),True,(255,255,255)),(1000,400))
-
-        pygame.draw.rect(screen,(100,100,100),foxy_left)
-        pygame.draw.rect(screen,(100,100,100),foxy_right)
-
-        pygame.draw.rect(screen,(120,120,120),ready_button)
+        screen.blit(arrow_font.render(">", True, WHITE),
+            (chica_right.centerx - 10, chica_right.centery - 15))
 
     if game_state == "loading":
         screen.blit(loading_img, (0, 0))
@@ -702,23 +783,32 @@ while True:
             if chica_loc == 4:
                 screen.blit(chica_imgs[1], (width / 2, height / 3))
 
+        if kid_active and current_camera == kid_camera:
+
+            screen.blit(kid_img, (width/2.5, height/3))
+
+            kid_seen = True
+
                 # Camera mapa
         for cam, rect in cam_buttons.items():
             pygame.draw.rect(screen, (0,150,0), rect, 2)
             text = font.render(str(cam), True, (0,255,0))
             screen.blit(text, (rect.x + 30, rect.y + 20))
-        draw_static()
+        if random_event_active:
+            draw_event_static()
+        else:
+            draw_static()
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
 
     elif game_state == "power_saving":
 
         screen.fill((0,0,0))
 
-        text = big_font.render("POWER SAVING", True, (255,255,0))
         screen.blit(power_out_img, (0, 0))
 
         text2 = font.render("SYSTEMS OFFLINE", True, (255,255,255))
         screen.blit(text2, (width/2 - 100, height/2 + 20))
+
         
     elif game_state == "win":
         if 'win_start_time' not in globals():
@@ -741,7 +831,9 @@ while True:
         screen.fill((0,0,0))
 
         text = big_font.render("POWER OUT", True, (255,0,0))
-        screen.blit(text, (width/2 - 200, height/2 - 50))
+        screen.blit(power_out_img(0, 0))
+        sound_ambient.stop()
+        sound_light_out.play()
 
         if pygame.time.get_ticks() - power_out_start > 5000:
             game_over()           
