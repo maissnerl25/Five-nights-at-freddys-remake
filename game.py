@@ -72,6 +72,7 @@ jumpscare_bonnie_img = pygame.transform.scale(
 jumpscare_chica_img = pygame.transform.scale(
     pygame.image.load("assets/chirk.jumpscare.png"), (width, height)
 )
+
 # ===== Zvuky =====
 sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
 sound_door = pygame.mixer.Sound("assets/sound_door.wav")
@@ -92,6 +93,7 @@ night = 1
 max_nights = 6
 power_out = False
 power_out_start = 0
+gameover_start = 0
 killed_by = None
 jumpscare_played = False
 power_saving = False
@@ -154,8 +156,9 @@ chica_right = pygame.Rect(750,400,40,40)
 foxy_left = pygame.Rect(950,400,40,40)
 foxy_right = pygame.Rect(1050,400,40,40)
 # ===== Office buttons =====
-camera_button = pygame.Rect(150, 700, 1050, 100)
-door_button = pygame.Rect(0, 0, 150, 800)
+door_button = pygame.Rect(0, 0, width // 5, height)
+camera_button = pygame.Rect(door_button.width, 700, width - door_button.width, 100)
+generator_button = pygame.Rect(1050, 600, 150, 50)
 # ===== AI's ====
 fred_AI = 1
 bonnie_AI = 1
@@ -191,7 +194,7 @@ current_time = pygame.time.get_ticks()
 last_switch = 0
 hour = 12
 time_counter = 0
-TIME_PER_HOUR = 20 + (10 * night)  # kolik sekund trvá 1 hodina ve hře
+TIME_PER_HOUR = 60  # kolik sekund trvá 1 hodina ve hře
 wait_start_time = 0
 wait_start_time_bon = 0
 loading_start_time = 0
@@ -337,17 +340,19 @@ def jumpscare_chica():
     screen.blit(jumpscare_chica_img, (0, 0))
     sound_jumpscare.play()
 def win():
-    global game_state, night, max_unlocked_night
+    global game_state, night, max_unlocked_night, win_start_time
     game_state = "win"
+    win_start_time = pygame.time.get_ticks()
     if night == max_unlocked_night and max_unlocked_night < 6:
         max_unlocked_night += 1
     save_progress(max_unlocked_night)
 
 def game_over(animatronic):
-    global game_state, killed_by
+    global game_state, killed_by, gameover_start, jumpscare_played
     killed_by = animatronic
     jumpscare_played = False
     game_state = "gameover"
+    gameover_start = pygame.time.get_ticks()
 
     
 def draw_static():
@@ -477,16 +482,27 @@ while True:
                     game_state = "office"
                     sound_cam.play()
 
-            elif door_button.collidepoint(event.pos) and generator_active == False:
-                left_door_closed = not left_door_closed
-                if left_door_closed:
-                    sound_door.play()
+            elif door_button.collidepoint(event.pos) and game_state == "office" and generator_active == False:
+                left_door_closed = True
+                sound_door.play()
+
+            elif generator_button.collidepoint(event.pos) and game_state == "office" and generator_active == False:
+                generator_active = True
+                generator_start = pygame.time.get_ticks()
+                game_state = "power_saving"
+                sound_ambient.stop()
+                sound_light_out.play()
+                left_door_closed = False
+                light_on = False
 
             elif game_state == "camera":
                 for cam, rect in cam_buttons.items():
                     if rect.collidepoint(event.pos):
                         current_camera = cam
                         sound_cam.play()
+
+        if event.type == pygame.MOUSEBUTTONUP and game_state == "office":
+            left_door_closed = False
 
 
 
@@ -592,7 +608,7 @@ while True:
             if event.key == pygame.K_o:
                 win()
             if event.key == pygame.K_p:
-                game_over()
+                game_over("freddy")
             if event.key == pygame.K_i:
                 fred_pos += 1
                 print(fred_pos)
@@ -784,6 +800,11 @@ while True:
         door_text = font.render("DVEŘE", True, (255, 0, 0))
         screen.blit(door_text, (door_button.x + 30, door_button.y + 400))
         
+        pygame.draw.rect(screen, (0, 150, 0), generator_button, 2)
+        generator_text = font.render("GENERATOR", True, (0, 255, 0))
+        text_rect = generator_text.get_rect(center=generator_button.center)
+        screen.blit(generator_text, text_rect)
+        
 
     if game_state == "camera":
         screen.blit(cam_images[current_camera], (0,0))
@@ -839,19 +860,19 @@ while True:
             draw_static()
         # Camera mapa
         for cam, rect in cam_buttons.items():
-            pygame.draw.rect(screen, (0,150,0), rect, 2)
-            text = font.render(str(cam), True, (0,255,0))
+            pygame.draw.rect(screen, (255,255,255), rect, 2)
+            text = font.render(str(cam), True, (255,255,255))
             screen.blit(text, (rect.x + 30, rect.y + 20))
-        screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
+        screen.blit(font.render(f"CAMERA {current_camera}", True, (255, 255, 255)), (20, 40))
 
     if game_state in ["office", "camera"]:
 
-        pygame.draw.rect(screen, (0, 150, 0), camera_button, 2)
+        pygame.draw.rect(screen, (255, 255, 255), camera_button, 2)
 
         if game_state == "office":
-            camera_text = font.render("KAMERY", True, (0, 255, 0))
+            camera_text = font.render("V        V        V", True, (255, 255, 255))
         else:
-            camera_text = font.render("ZAVRIT", True, (0, 255, 0))
+            camera_text = font.render("V        V        V", True, (255, 255, 255))
 
         text_rect = camera_text.get_rect(center=camera_button.center)
         screen.blit(camera_text, text_rect)
@@ -867,17 +888,18 @@ while True:
 
         
     elif game_state == "win":
-        if 'win_start_time' not in globals():
-            win_start_time = pygame.time.get_ticks()
         elapsed = pygame.time.get_ticks() - win_start_time
         if elapsed < 1000:
             time_win = big_font.render("5 AM", True, (WHITE))
-            time_win_rect = time_win.get_rect(center=(width / 2, height / 2))
-            screen.blit(time_win, time_win_rect)
         else:
             time_win = big_font.render("6 AM", True, (WHITE))
-            time_win_rect = time_win.get_rect(center=(width / 2, height / 2))
-            screen.blit(time_win, time_win_rect)
+        time_win_rect = time_win.get_rect(center=(width / 2, height / 2))
+        screen.blit(time_win, time_win_rect)
+
+        if elapsed > 5000:
+            reset_night()
+            game_state = "menu"
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 reset_night()
@@ -896,7 +918,6 @@ while True:
             killed_by = "freddy"           
         
     elif game_state == "gameover":
-        global jumpscare_player
         if not jumpscare_played:
             sound_jumpscare.play()
             jumpscare_played = True
@@ -911,6 +932,10 @@ while True:
 
         if killed_by == "chica":
             screen.blit(jumpscare_chica_img, (0,0))
+
+        if pygame.time.get_ticks() - gameover_start > 5000:
+            reset_night()
+            game_state = "menu"
 
     # HUD
     if game_state not in ["menu","loading","custom","win","gameover"]:
