@@ -94,6 +94,7 @@ power_out = False
 power_out_start = 0
 killed_by = None
 jumpscare_played = False
+power_saving = False
 # ===== GENERATOR ====
 generator_active = False
 generator_start = 0
@@ -152,6 +153,9 @@ chica_right = pygame.Rect(750,400,40,40)
 
 foxy_left = pygame.Rect(950,400,40,40)
 foxy_right = pygame.Rect(1050,400,40,40)
+# ===== Office buttons =====
+camera_button = pygame.Rect(150, 700, 1050, 100)
+door_button = pygame.Rect(0, 0, 150, 800)
 # ===== AI's ====
 fred_AI = 1
 bonnie_AI = 1
@@ -462,11 +466,29 @@ while True:
             pygame.quit()
             sys.exit()
 
-        if game_state == "camera" and event.type == pygame.MOUSEBUTTONDOWN:
-            for cam, rect in cam_buttons.items():
-                  if rect.collidepoint(event.pos):
-                    current_camera = cam
+        if event.type == pygame.MOUSEBUTTONDOWN:
+
+            if camera_button.collidepoint(event.pos):
+                if game_state == "office" and generator_active == False:
+                    game_state = "camera"
+                    left_door_closed = False
                     sound_cam.play()
+                elif game_state == "camera":
+                    game_state = "office"
+                    sound_cam.play()
+
+            elif door_button.collidepoint(event.pos) and generator_active == False:
+                left_door_closed = not left_door_closed
+                if left_door_closed:
+                    sound_door.play()
+
+            elif game_state == "camera":
+                for cam, rect in cam_buttons.items():
+                    if rect.collidepoint(event.pos):
+                        current_camera = cam
+                        sound_cam.play()
+
+
 
         if game_state == "menu" and event.type == pygame.MOUSEBUTTONDOWN:
             for n, rect in night_buttons.items():
@@ -546,8 +568,9 @@ while True:
             # Dveře
             if event.key == pygame.K_d and game_state == "office":
                 if generator_active == False:
-                    left_door_closed = True
-                    sound_door.play()
+                    left_door_closed = not left_door_closed
+                    if left_door_closed:
+                        sound_door.play()
             
             # Světlo
             if event.key == pygame.K_l and game_state == "office":
@@ -756,9 +779,18 @@ while True:
     elif game_state == "office" and left_door_closed:
         screen.blit(office_door, (0, 0))
         
+    if game_state == "office":
+        pygame.draw.rect(screen, (150, 0, 0), door_button, 2)
+        door_text = font.render("DVEŘE", True, (255, 0, 0))
+        screen.blit(door_text, (door_button.x + 30, door_button.y + 400))
+        
 
-    elif game_state == "camera":
+    if game_state == "camera":
         screen.blit(cam_images[current_camera], (0,0))
+        if random_event_active:
+            draw_event_static()
+        else:
+            draw_static()
         # Freddy kamery
         fred_loc = fred_rooms[fred_pos]
         if fred_pos >= len(fred_rooms):
@@ -801,16 +833,28 @@ while True:
 
             kid_seen = True
 
-                # Camera mapa
-        for cam, rect in cam_buttons.items():
-            pygame.draw.rect(screen, (0,150,0), rect, 2)
-            text = font.render(str(cam), True, (0,255,0))
-            screen.blit(text, (rect.x + 30, rect.y + 20))
         if random_event_active:
             draw_event_static()
         else:
             draw_static()
+        # Camera mapa
+        for cam, rect in cam_buttons.items():
+            pygame.draw.rect(screen, (0,150,0), rect, 2)
+            text = font.render(str(cam), True, (0,255,0))
+            screen.blit(text, (rect.x + 30, rect.y + 20))
         screen.blit(font.render(f"CAMERA {current_camera}", True, (0, 255, 0)), (20, 40))
+
+    if game_state in ["office", "camera"]:
+
+        pygame.draw.rect(screen, (0, 150, 0), camera_button, 2)
+
+        if game_state == "office":
+            camera_text = font.render("KAMERY", True, (0, 255, 0))
+        else:
+            camera_text = font.render("ZAVRIT", True, (0, 255, 0))
+
+        text_rect = camera_text.get_rect(center=camera_button.center)
+        screen.blit(camera_text, text_rect)
 
     elif game_state == "power_saving":
 
