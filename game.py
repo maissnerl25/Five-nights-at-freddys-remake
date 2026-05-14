@@ -1,5 +1,21 @@
 import pygame, random, sys, os
 
+
+def resource_path(relative_path):
+    if getattr(sys, "frozen", False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, relative_path)
+
+
+def get_save_path():
+    if getattr(sys, "frozen", False):
+        return os.path.join(os.path.dirname(sys.executable), "save.txt")
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), "save.txt")
+
+save_file = get_save_path()
+
 pygame.init()
 
 width, height = 1200, 800
@@ -13,74 +29,74 @@ arrow_font = pygame.font.SysFont(None, 50)
 
 # ===== Načtení obrázků =====
 menu_img = pygame.transform.scale(
-    pygame.image.load("assets/menu.png"), (width, height)
+    pygame.image.load(resource_path("assets/menu.png")), (width, height)
 )
 office_img = pygame.transform.scale(
-    pygame.image.load("assets/office.png"), (width, height)
+    pygame.image.load(resource_path("assets/office.png")), (width, height)
 )
 office_door = pygame.transform.scale(
-    pygame.image.load("assets/office.door.png"), (width, height)
+    pygame.image.load(resource_path("assets/office.door.png")), (width, height)
 )
 office_light = pygame.transform.scale(
-    pygame.image.load("assets/office.light.png"), (width, height)
+    pygame.image.load(resource_path("assets/office.light.png")), (width, height)
 )
 loading_img = pygame.transform.scale(
-    pygame.image.load("assets/newspaper.png"), (width, height)
+    pygame.image.load(resource_path("assets/newspaper.png")), (width, height)
 )
 office_fred_door = pygame.transform.scale(
-    pygame.image.load("assets/office.fred2.png"), (width, height)
+    pygame.image.load(resource_path("assets/office.fred2.png")), (width, height)
 )
 power_out_img = pygame.transform.scale(
-    pygame.image.load("assets/power_out.png"), (width, height)
+    pygame.image.load(resource_path("assets/power_out.png")), (width, height)
 )
 cam_images = {
-    0: pygame.transform.scale(pygame.image.load("assets/cam0.png"), (width, height)),
-    1: pygame.transform.scale(pygame.image.load("assets/cam1.png"), (width, height)),
-    2: pygame.transform.scale(pygame.image.load("assets/cam2.png"), (width, height)),
-    3: pygame.transform.scale(pygame.image.load("assets/cam3.png"), (width, height)),
-    4: pygame.transform.scale(pygame.image.load("assets/cam4.png"), (width, height)),
-    5: pygame.transform.scale(pygame.image.load("assets/cam5.png"), (width, height)),
-    6: pygame.transform.scale(pygame.image.load("assets/cam6.png"), (width, height)),
+    0: pygame.transform.scale(pygame.image.load(resource_path("assets/cam0.png")), (width, height)),
+    1: pygame.transform.scale(pygame.image.load(resource_path("assets/cam1.png")), (width, height)),
+    2: pygame.transform.scale(pygame.image.load(resource_path("assets/cam2.png")), (width, height)),
+    3: pygame.transform.scale(pygame.image.load(resource_path("assets/cam3.png")), (width, height)),
+    4: pygame.transform.scale(pygame.image.load(resource_path("assets/cam4.png")), (width, height)),
+    5: pygame.transform.scale(pygame.image.load(resource_path("assets/cam5.png")), (width, height)),
+    6: pygame.transform.scale(pygame.image.load(resource_path("assets/cam6.png")), (width, height)),
 }
 
 fred_imgs = {
-    1: pygame.image.load("assets/eps1.png"),
-    2: pygame.image.load("assets/eps2.png").convert_alpha(),
-    3: pygame.image.load("assets/eps3.png")         
+    1: pygame.image.load(resource_path("assets/eps1.png")),
+    2: pygame.image.load(resource_path("assets/eps2.png")).convert_alpha(),
+    3: pygame.image.load(resource_path("assets/eps3.png"))        
 }          
 bon_imgs = { 
-    1: pygame.image.load("assets/diddy1.png").convert_alpha(),
-    2: pygame.image.load("assets/diddy2.png").convert_alpha(),
-    3: pygame.image.load("assets/diddy3.png").convert_alpha()
+    1: pygame.image.load(resource_path("assets/diddy1.png")).convert_alpha(),
+    2: pygame.image.load(resource_path("assets/diddy2.png")).convert_alpha(),
+    3: pygame.image.load(resource_path("assets/diddy3.png")).convert_alpha()
 }
 chica_imgs = {
-    1: pygame.image.load("assets/chirk1.png").convert_alpha(),
-    2: pygame.image.load("assets/chirk2.png").convert_alpha(),
-    3: pygame.image.load("assets/chirk3.png").convert_alpha()
+    1: pygame.image.load(resource_path("assets/chirk1.png")).convert_alpha(),
+    2: pygame.image.load(resource_path("assets/chirk2.png")).convert_alpha(),
+    3: pygame.image.load(resource_path("assets/chirk3.png")).convert_alpha()
 }  
 foxy_imgs = {
-    1: pygame.image.load("assets/foxy1.png").convert_alpha(),
+    1: pygame.image.load(resource_path("assets/foxy1.png")).convert_alpha(),
 }
-kid_img = pygame.image.load("assets/crying.kid.png").convert_alpha()
+kid_img = pygame.image.load(resource_path("assets/crying.kid.png")).convert_alpha()
 
 jumpscare_freddy_img = pygame.transform.scale(
-    pygame.image.load("assets/eps.jumpscare.png"), (width, height)
+    pygame.image.load(resource_path("assets/eps.jumpscare.png")), (width, height)
 )
 jumpscare_bonnie_img = pygame.transform.scale(
-    pygame.image.load("assets/diddy.jumpscare.png"), (width, height)
+    pygame.image.load(resource_path("assets/diddy.jumpscare.png")), (width, height)
 )
 jumpscare_chica_img = pygame.transform.scale(
-    pygame.image.load("assets/chirk.jumpscare.png"), (width, height)
+    pygame.image.load(resource_path("assets/chirk.jumpscare.png")), (width, height)
 )
 
 # ===== Zvuky =====
-sound_cam = pygame.mixer.Sound("assets/sound_cam.wav")
-sound_door = pygame.mixer.Sound("assets/sound_door.wav")
-sound_step = pygame.mixer.Sound("assets/sound_step.wav")
-sound_jumpscare = pygame.mixer.Sound("assets/sound_jumpscare.wav")
-sound_ambient = pygame.mixer.Sound("assets/sound_ambient.wav")
-sound_light_out = pygame.mixer.Sound("assets/sound_lights_out.wav")
-sound_cry = pygame.mixer.Sound("assets/sound_cry.wav")
+sound_cam = pygame.mixer.Sound(resource_path("assets/sound_cam.wav"))
+sound_door = pygame.mixer.Sound(resource_path("assets/sound_door.wav"))
+sound_step = pygame.mixer.Sound(resource_path("assets/sound_step.wav"))
+sound_jumpscare = pygame.mixer.Sound(resource_path("assets/sound_jumpscare.wav"))
+sound_ambient = pygame.mixer.Sound(resource_path("assets/sound_ambient.wav"))
+sound_light_out = pygame.mixer.Sound(resource_path("assets/sound_lights_out.wav"))
+sound_cry = pygame.mixer.Sound(resource_path("assets/sound_cry.wav"))
 
 sound_ambient.set_volume(0.2)
 sound_light_out.set_volume(0.1)
@@ -398,13 +414,13 @@ def reset_night():
     current_camera = 1
 
 def load_progress():
-    if os.path.exists("save.txt"):
-        with open("save.txt", "r") as f:
+    if os.path.exists(save_file):
+        with open(save_file, "r") as f:
             return int(f.read())
     return 1
 
 def save_progress(max_night):
-    with open("save.txt", "w") as f:
+    with open(save_file, "w") as f:
         f.write(str(max_night))
 
 def reset_progress():
